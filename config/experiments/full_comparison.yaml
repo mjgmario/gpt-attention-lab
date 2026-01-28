@@ -1,0 +1,67 @@
+# =============================================================================
+# Experiment: Full Attention Comparison on Shakespeare
+# =============================================================================
+# Compares ALL attention variants on the Shakespeare dataset.
+#
+# Prepare data (optional, for faster startup):
+#   uv run python scripts/prepare_data.py
+#
+# Run:
+#   uv run python scripts/train.py --config config/experiments/full_comparison.yaml --compare
+#
+# Without --compare, trains with the default attention type (vanilla).
+
+experiment:
+  name: full_comparison
+  seed: 42
+  output_dir: outputs/full_comparison
+
+model:
+  block_size: 128
+  n_layer: 4
+  n_head: 4
+  n_embd: 128
+  dropout: 0.1
+
+training:
+  max_steps: 50
+  batch_size: 32
+  learning_rate: 3.0e-4
+  eval_interval: 500
+  eval_steps: 50
+  checkpoint_dir: checkpoints/full_comparison
+
+# -----------------------------------------------------------------------------
+# Data Configuration
+# -----------------------------------------------------------------------------
+# use_cache: true  -> try to load preloaded/cached data first, download if missing
+# use_cache: false -> always download fresh data (default if omitted)
+# cache_dir: custom path to cache directory (default: data/.cache)
+data:
+  use_cache: true
+  # cache_dir: data/.cache  # uncomment to override default cache location
+
+  datasets:
+    - type: shakespeare
+      weight: 1.0
+
+# -----------------------------------------------------------------------------
+# Compare ALL attention variants
+# -----------------------------------------------------------------------------
+compare:
+  variants:
+    - vanilla
+    - linear
+    - sliding_window
+    - sparse
+    - rotary
+  eval_accuracy: false
+
+# Variant-specific parameters
+attention:
+  type: vanilla  # default when not in compare mode
+  sliding_window:
+    window_size: 16
+  sparse:
+    local_size: 16
+    stride: 16

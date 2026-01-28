@@ -1,0 +1,30 @@
+# =============================================================================
+# Experiment: Sparse Attention
+# =============================================================================
+# Test strided + local attention pattern on Shakespeare
+
+experiment:
+  name: sparse_attention
+  seed: 42
+
+model:
+  block_size: 128
+  n_layer: 4
+  n_head: 4
+  n_embd: 128
+
+attention:
+  type: sparse
+  sparse:
+    local_size: 8
+    stride: 8
+
+training:
+  max_steps: 3000
+  batch_size: 32
+  checkpoint_dir: checkpoints/sparse_attention
+
+data:
+  datasets:
+    - type: shakespeare
+      weight: 1.0
