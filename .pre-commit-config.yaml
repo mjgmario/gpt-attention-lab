@@ -30,12 +30,13 @@ repos:
         additional_dependencies:
           - numpy
           - torch
+          - types-PyYAML
         args:
           - --ignore-missing-imports
         exclude: ^(tests/|scripts/)
 
 default_language_version:
-  python: python3.10
+  python: python3
 
 fail_fast: false
 

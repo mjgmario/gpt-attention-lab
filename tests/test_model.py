@@ -1,14 +1,15 @@
 """Tests for GPT model components."""
 
+import sys
+from pathlib import Path
+
 import pytest
 import torch
 
-import sys
-from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from attention_lab.config import GPTConfig
-from attention_lab.model import GPT, Block, CausalSelfAttention, MLP
+from attention_lab.model import GPT, MLP, Block, CausalSelfAttention
 
 
 class TestGPTConfig:

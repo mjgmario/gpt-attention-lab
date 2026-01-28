@@ -12,11 +12,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-
 from attention_lab.config import GPTConfig
 from attention_lab.data.shakespeare import ShakespeareDataset
 from attention_lab.model import GPT
+from torch.utils.data import DataLoader
 
 
 def evaluate_perplexity(
@@ -111,26 +110,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Ablation study on GPT model")
 
     # Model loading
-    parser.add_argument("--checkpoint", type=str, required=True,
-                        help="Path to model checkpoint")
+    parser.add_argument("--checkpoint", type=str, required=True, help="Path to model checkpoint")
 
     # Ablation options
-    parser.add_argument("--ablate_layers", action="store_true",
-                        help="Run layer ablation study")
-    parser.add_argument("--ablate_heads", action="store_true",
-                        help="Run head ablation study")
+    parser.add_argument("--ablate_layers", action="store_true", help="Run layer ablation study")
+    parser.add_argument("--ablate_heads", action="store_true", help="Run head ablation study")
 
     # Evaluation
-    parser.add_argument("--max_batches", type=int, default=50,
-                        help="Max batches for evaluation")
-    parser.add_argument("--batch_size", type=int, default=32,
-                        help="Batch size for evaluation")
+    parser.add_argument("--max_batches", type=int, default=50, help="Max batches for evaluation")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for evaluation")
 
     # Output
-    parser.add_argument("--output_dir", type=str, default="outputs/ablation",
-                        help="Directory to save results")
-    parser.add_argument("--show", action="store_true",
-                        help="Show plots interactively")
+    parser.add_argument(
+        "--output_dir", type=str, default="outputs/ablation", help="Directory to save results"
+    )
+    parser.add_argument("--show", action="store_true", help="Show plots interactively")
 
     # Device
     parser.add_argument("--device", type=str, default="cpu")
@@ -205,7 +199,9 @@ def main() -> None:
 
         x = range(config.n_layer)
         ax.bar(x, layer_ppls, color="steelblue", alpha=0.7)
-        ax.axhline(y=baseline_ppl, color="red", linestyle="--", label=f"Baseline ({baseline_ppl:.2f})")
+        ax.axhline(
+            y=baseline_ppl, color="red", linestyle="--", label=f"Baseline ({baseline_ppl:.2f})"
+        )
 
         ax.set_xlabel("Layer Index")
         ax.set_ylabel("Perplexity")
@@ -254,7 +250,9 @@ def main() -> None:
         im = ax.imshow(head_ppls, cmap="Reds", aspect="auto")
         ax.set_xlabel("Head Index")
         ax.set_ylabel("Layer Index")
-        ax.set_title(f"Head Ablation Study: Perplexity After Removing Each Head\n(Baseline: {baseline_ppl:.2f})")
+        ax.set_title(
+            f"Head Ablation Study: Perplexity After Removing Each Head\n(Baseline: {baseline_ppl:.2f})"
+        )
         ax.set_xticks(range(config.n_head))
         ax.set_yticks(range(config.n_layer))
 
@@ -262,9 +260,15 @@ def main() -> None:
         for i in range(config.n_layer):
             for j in range(config.n_head):
                 delta = head_ppls[i, j] - baseline_ppl
-                ax.text(j, i, f"{delta:+.1f}", ha="center", va="center",
-                       color="white" if head_ppls[i, j] > np.median(head_ppls) else "black",
-                       fontsize=9)
+                ax.text(
+                    j,
+                    i,
+                    f"{delta:+.1f}",
+                    ha="center",
+                    va="center",
+                    color="white" if head_ppls[i, j] > np.median(head_ppls) else "black",
+                    fontsize=9,
+                )
 
         plt.colorbar(im, ax=ax, label="Perplexity")
         plt.tight_layout()
@@ -321,7 +325,9 @@ def main() -> None:
             for layer in range(config.n_layer):
                 for head in range(config.n_head):
                     ppl = head_ppls[layer, head]
-                    f.write(f"Layer {layer}, Head {head}: {ppl:.4f} (Δ = {ppl - baseline_ppl:+.4f})\n")
+                    f.write(
+                        f"Layer {layer}, Head {head}: {ppl:.4f} (Δ = {ppl - baseline_ppl:+.4f})\n"
+                    )
 
     print(f"Report saved to: {report_path}")
     print("\nAblation study complete!")

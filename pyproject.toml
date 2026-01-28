@@ -49,7 +49,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["N802"]
+"tests/*.py" = ["N802", "E402"]
 "scripts/*.py" = ["E402"]
 
 [tool.mypy]

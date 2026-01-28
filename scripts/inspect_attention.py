@@ -9,7 +9,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import torch
-
 from attention_lab.config import GPTConfig
 from attention_lab.data.shakespeare import ShakespeareDataset
 from attention_lab.generate import get_attention_for_text
@@ -25,28 +24,32 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Visualize attention patterns")
 
     # Model loading
-    parser.add_argument("--checkpoint", type=str, default=None,
-                        help="Path to model checkpoint (uses random model if not provided)")
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Path to model checkpoint (uses random model if not provided)",
+    )
 
     # Input text
-    parser.add_argument("--text", type=str, default="Hello world!",
-                        help="Text to analyze attention for")
+    parser.add_argument(
+        "--text", type=str, default="Hello world!", help="Text to analyze attention for"
+    )
 
     # Visualization options
-    parser.add_argument("--layer", type=int, default=0,
-                        help="Layer to visualize (default: 0)")
-    parser.add_argument("--head", type=int, default=0,
-                        help="Head to visualize (default: 0)")
-    parser.add_argument("--all_heads", action="store_true",
-                        help="Plot all heads in a grid")
-    parser.add_argument("--pattern", action="store_true",
-                        help="Use causal pattern visualization")
+    parser.add_argument("--layer", type=int, default=0, help="Layer to visualize (default: 0)")
+    parser.add_argument("--head", type=int, default=0, help="Head to visualize (default: 0)")
+    parser.add_argument("--all_heads", action="store_true", help="Plot all heads in a grid")
+    parser.add_argument("--pattern", action="store_true", help="Use causal pattern visualization")
 
     # Output
-    parser.add_argument("--output_dir", type=str, default="outputs/attention",
-                        help="Directory to save visualizations")
-    parser.add_argument("--show", action="store_true",
-                        help="Show plots interactively")
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="outputs/attention",
+        help="Directory to save visualizations",
+    )
+    parser.add_argument("--show", action="store_true", help="Show plots interactively")
 
     # Model config (if no checkpoint)
     parser.add_argument("--n_layer", type=int, default=4)
@@ -121,6 +124,7 @@ def main() -> None:
 
         if args.show:
             import matplotlib.pyplot as plt
+
             plt.show()
         else:
             plt.close(fig)
@@ -152,9 +156,11 @@ def main() -> None:
 
         if args.show:
             import matplotlib.pyplot as plt
+
             plt.show()
         else:
             import matplotlib.pyplot as plt
+
             plt.close(fig)
 
     # Print attention statistics
@@ -162,7 +168,7 @@ def main() -> None:
     print("Attention Statistics")
     print("=" * 60)
 
-    from attention_lab.inspect.analyze import head_entropy, attention_to_positions
+    from attention_lab.inspect.analyze import attention_to_positions, head_entropy
 
     for layer_idx, attn in enumerate(attentions):
         print(f"\nLayer {layer_idx}:")
@@ -170,9 +176,11 @@ def main() -> None:
         pos_metrics = attention_to_positions(attn)
 
         for h in range(config.n_head):
-            print(f"  Head {h}: entropy={entropy[h]:.3f}, "
-                  f"first_tok_attn={pos_metrics['first_token_attention'][h]:.3f}, "
-                  f"prev_tok_attn={pos_metrics['prev_token_attention'][h]:.3f}")
+            print(
+                f"  Head {h}: entropy={entropy[h]:.3f}, "
+                f"first_tok_attn={pos_metrics['first_token_attention'][h]:.3f}, "
+                f"prev_tok_attn={pos_metrics['prev_token_attention'][h]:.3f}"
+            )
 
     print(f"\nVisualizations saved to: {output_dir}/")
 

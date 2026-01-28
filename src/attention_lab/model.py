@@ -11,7 +11,6 @@ This module provides the core GPT model components:
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -59,7 +58,7 @@ class CausalSelfAttention(nn.Module):
 
     def forward(
         self, x: torch.Tensor, return_attn: bool = False
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Forward pass with optional attention weights output.
 
         :param x: Input tensor of shape ``(batch, seq_len, n_embd)``.
@@ -83,7 +82,7 @@ class CausalSelfAttention(nn.Module):
         if return_attn:
             # Manual attention to capture weights for visualization
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))
-            att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float("-inf"))
+            att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float("-inf"))  # type: ignore[index]
             att = F.softmax(att, dim=-1)
             attn_weights = att
             att = self.attn_dropout(att)
@@ -91,7 +90,10 @@ class CausalSelfAttention(nn.Module):
         else:
             # Fast path: use PyTorch SDPA (fused kernels)
             y = F.scaled_dot_product_attention(
-                q, k, v, is_causal=True,
+                q,
+                k,
+                v,
+                is_causal=True,
                 dropout_p=self.dropout if self.training else 0.0,
             )
 
@@ -154,7 +156,7 @@ class Block(nn.Module):
 
     def forward(
         self, x: torch.Tensor, return_attn: bool = False
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Forward pass with optional attention weights.
 
         :param x: Input tensor of shape ``(batch, seq_len, n_embd)``.
@@ -224,9 +226,9 @@ class GPT(nn.Module):
     def forward(
         self,
         idx: torch.Tensor,
-        targets: Optional[torch.Tensor] = None,
+        targets: torch.Tensor | None = None,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor], Optional[list[torch.Tensor]]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None, list[torch.Tensor] | None]:
         """Forward pass through the GPT model.
 
         :param idx: Input token indices of shape ``(batch, seq_len)``.
@@ -245,7 +247,9 @@ class GPT(nn.Module):
         """
         device = idx.device
         B, T = idx.size()
-        assert T <= self.config.block_size, f"Sequence length {T} > block_size {self.config.block_size}"
+        assert (
+            T <= self.config.block_size
+        ), f"Sequence length {T} > block_size {self.config.block_size}"
 
         # Token and position embeddings
         pos = torch.arange(0, T, dtype=torch.long, device=device)
@@ -254,11 +258,11 @@ class GPT(nn.Module):
         x = self.transformer["drop"](tok_emb + pos_emb)
 
         # Transformer blocks
-        all_attentions = [] if return_attn else None
-        for block in self.transformer["h"]:
+        all_attentions: list[torch.Tensor] | None = [] if return_attn else None
+        for block in self.transformer["h"]:  # type: ignore[attr-defined]
             x, attn = block(x, return_attn=return_attn)
             if return_attn and attn is not None:
-                all_attentions.append(attn)
+                all_attentions.append(attn)  # type: ignore[union-attr]
 
         x = self.transformer["ln_f"](x)
         logits = self.lm_head(x)
@@ -284,8 +288,8 @@ class GPT(nn.Module):
         idx: torch.Tensor,
         max_new_tokens: int,
         temperature: float = 1.0,
-        top_k: Optional[int] = None,
-        top_p: Optional[float] = None,
+        top_k: int | None = None,
+        top_p: float | None = None,
     ) -> torch.Tensor:
         """Generate new tokens autoregressively.
 

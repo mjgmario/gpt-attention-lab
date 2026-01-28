@@ -7,7 +7,7 @@ for comparison and experimentation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, Optional
+from typing import Literal
 
 import torch
 import torch.nn as nn
@@ -15,7 +15,6 @@ from torch.nn import functional as F
 
 from attention_lab.attention_variants import (
     ATTENTION_VARIANTS,
-    BaseAttention,
     create_attention,
 )
 from attention_lab.config import GPTConfig
@@ -30,9 +29,7 @@ class GPTVariantConfig(GPTConfig):
         attention_kwargs: Additional kwargs for attention (e.g., window_size)
     """
 
-    attention_type: Literal[
-        "vanilla", "linear", "sliding_window", "sparse", "rotary"
-    ] = "vanilla"
+    attention_type: Literal["vanilla", "linear", "sliding_window", "sparse", "rotary"] = "vanilla"
     attention_kwargs: dict = field(default_factory=dict)
 
 
@@ -64,7 +61,7 @@ class BlockVariant(nn.Module):
 
     def forward(
         self, x: torch.Tensor, return_attn: bool = False
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         attn_out, attn_weights = self.attn(self.ln_1(x), return_attn=return_attn)
         x = x + attn_out
         x = x + self.mlp(self.ln_2(x))
@@ -113,9 +110,9 @@ class GPTVariant(nn.Module):
     def forward(
         self,
         idx: torch.Tensor,
-        targets: Optional[torch.Tensor] = None,
+        targets: torch.Tensor | None = None,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor], Optional[list[torch.Tensor]]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None, list[torch.Tensor] | None]:
         device = idx.device
         B, T = idx.size()
 
@@ -130,11 +127,11 @@ class GPTVariant(nn.Module):
             x = self.transformer["drop"](tok_emb)
 
         # Transformer blocks
-        all_attentions = [] if return_attn else None
-        for block in self.transformer["h"]:
+        all_attentions: list[torch.Tensor] | None = [] if return_attn else None
+        for block in self.transformer["h"]:  # type: ignore[attr-defined]
             x, attn = block(x, return_attn=return_attn)
             if return_attn and attn is not None:
-                all_attentions.append(attn)
+                all_attentions.append(attn)  # type: ignore[union-attr]
 
         x = self.transformer["ln_f"](x)
         logits = self.lm_head(x)
@@ -151,7 +148,7 @@ class GPTVariant(nn.Module):
         idx: torch.Tensor,
         max_new_tokens: int,
         temperature: float = 1.0,
-        top_k: Optional[int] = None,
+        top_k: int | None = None,
     ) -> torch.Tensor:
         for _ in range(max_new_tokens):
             idx_cond = (
@@ -203,7 +200,7 @@ def create_model_variant(
         n_head=n_head,
         n_embd=n_embd,
         dropout=dropout,
-        attention_type=attention_type,
+        attention_type=attention_type,  # type: ignore[arg-type]
         attention_kwargs=attention_kwargs,
     )
     return GPTVariant(config)
@@ -228,7 +225,7 @@ def compare_attention_complexity() -> None:
 
 
 def benchmark_attention_variants(
-    seq_lengths: list[int] = [32, 64, 128, 256],
+    seq_lengths: list[int] | None = None,
     n_embd: int = 128,
     n_head: int = 4,
     device: str = "cpu",
@@ -248,7 +245,9 @@ def benchmark_attention_variants(
     """
     import time
 
-    results = {name: [] for name in ATTENTION_VARIANTS.keys()}
+    if seq_lengths is None:
+        seq_lengths = [32, 64, 128, 256]
+    results: dict[str, list[float]] = {name: [] for name in ATTENTION_VARIANTS.keys()}
 
     print(f"\nBenchmarking attention variants (device={device})...")
     print("-" * 50)

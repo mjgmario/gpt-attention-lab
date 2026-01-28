@@ -29,22 +29,29 @@ Example::
     logits, loss, attentions = model(tokens, return_attn=True)
 """
 
-from attention_lab.config import GPTConfig
-from attention_lab.generate import generate
-from attention_lab.model import GPT, Block, CausalSelfAttention, MLP
-from attention_lab.train import Trainer, TrainerConfig
-
 # Attention variants
 from attention_lab.attention_variants import (
+    ATTENTION_VARIANTS,
     BaseAttention,
-    VanillaAttention,
     LinearAttention,
+    RotaryAttention,
     SlidingWindowAttention,
     SparseAttention,
-    RotaryAttention,
+    VanillaAttention,
     create_attention,
-    ATTENTION_VARIANTS,
 )
+from attention_lab.config import GPTConfig
+
+# Config loader
+from attention_lab.config_loader import (
+    DataConfig,
+    ExperimentConfig,
+    ModelConfig,
+    TrainingConfig,
+    load_config,
+)
+from attention_lab.generate import generate
+from attention_lab.model import GPT, MLP, Block, CausalSelfAttention
 
 # Model variants
 from attention_lab.model_variants import (
@@ -52,15 +59,7 @@ from attention_lab.model_variants import (
     GPTVariantConfig,
     create_model_variant,
 )
-
-# Config loader
-from attention_lab.config_loader import (
-    load_config,
-    ExperimentConfig,
-    ModelConfig,
-    TrainingConfig,
-    DataConfig,
-)
+from attention_lab.train import Trainer, TrainerConfig
 
 __all__ = [
     # Config

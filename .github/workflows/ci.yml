@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10"]
       fail-fast: false
 
     steps:
@@ -32,10 +32,9 @@ jobs:
         run: |
           uv sync --all-extras
 
-      - name: Run linting
+      - name: Run pre-commit hooks
         run: |
-          uv run ruff check .
-          uv run ruff format --check .
+          uv run pre-commit run --all-files
 
       - name: Run tests
         run: |

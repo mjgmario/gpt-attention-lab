@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import math
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -102,7 +101,7 @@ class BaseAttention(nn.Module, ABC):
         k: torch.Tensor,
         v: torch.Tensor,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Compute attention. Override in subclasses.
 
         :param q: Query tensor of shape ``(B, n_head, T, head_dim)``.
@@ -120,7 +119,7 @@ class BaseAttention(nn.Module, ABC):
 
     def forward(
         self, x: torch.Tensor, return_attn: bool = False
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Forward pass through attention layer.
 
         :param x: Input tensor of shape ``(B, T, C)``.
@@ -176,13 +175,13 @@ class VanillaAttention(BaseAttention):
         k: torch.Tensor,
         v: torch.Tensor,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         B, nh, T, hs = q.size()
 
         if return_attn:
             # Manual path for visualization
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(hs))
-            att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float("-inf"))
+            att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float("-inf"))  # type: ignore[index]
             att = F.softmax(att, dim=-1)
             attn_weights = att
             att = self.attn_dropout(att)
@@ -191,7 +190,10 @@ class VanillaAttention(BaseAttention):
 
         # Fast path: fused SDPA
         y = F.scaled_dot_product_attention(
-            q, k, v, is_causal=True,
+            q,
+            k,
+            v,
+            is_causal=True,
             dropout_p=self.dropout_p if self.training else 0.0,
         )
         return y, None
@@ -223,7 +225,7 @@ class LinearAttention(BaseAttention):
         k: torch.Tensor,
         v: torch.Tensor,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         B, nh, T, hs = q.size()
 
         # Apply feature map
@@ -235,7 +237,6 @@ class LinearAttention(BaseAttention):
         # Output = q @ KV / (q @ cumsum(k))
 
         # Compute cumulative KV and K
-        kv = torch.einsum("bhnd,bhnm->bhdm", k, v)  # (B, nh, hs, hs)
         kv_cumsum = torch.cumsum(
             torch.einsum("bhti,bhtj->bhtij", k, v), dim=2
         )  # (B, nh, T, hs, hs)
@@ -291,10 +292,10 @@ class SlidingWindowAttention(BaseAttention):
         k: torch.Tensor,
         v: torch.Tensor,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         B, nh, T, hs = q.size()
 
-        mask = self.window_mask[:T, :T]
+        mask = self.window_mask[:T, :T]  # type: ignore[index]
 
         if return_attn:
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(hs))
@@ -307,7 +308,10 @@ class SlidingWindowAttention(BaseAttention):
 
         # Fast path: fused SDPA with pre-computed mask
         y = F.scaled_dot_product_attention(
-            q, k, v, attn_mask=mask,
+            q,
+            k,
+            v,
+            attn_mask=mask,
             dropout_p=self.dropout_p if self.training else 0.0,
         )
         return y, None
@@ -326,9 +330,7 @@ class SparseAttention(BaseAttention):
     Based on "Generating Long Sequences with Sparse Transformers" (Child et al., 2019).
     """
 
-    def __init__(
-        self, *args, local_size: int = 16, stride: int = 16, **kwargs
-    ) -> None:
+    def __init__(self, *args, local_size: int = 16, stride: int = 16, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.local_size = local_size
         self.stride = stride
@@ -348,10 +350,10 @@ class SparseAttention(BaseAttention):
         k: torch.Tensor,
         v: torch.Tensor,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         B, nh, T, hs = q.size()
 
-        mask = self.sparse_mask[:T, :T]
+        mask = self.sparse_mask[:T, :T]  # type: ignore[index]
 
         if return_attn:
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(hs))
@@ -364,7 +366,10 @@ class SparseAttention(BaseAttention):
 
         # Fast path: fused SDPA with pre-computed mask
         y = F.scaled_dot_product_attention(
-            q, k, v, attn_mask=mask,
+            q,
+            k,
+            v,
+            attn_mask=mask,
             dropout_p=self.dropout_p if self.training else 0.0,
         )
         return y, None
@@ -385,9 +390,7 @@ class RotaryAttention(BaseAttention):
         super().__init__(*args, **kwargs)
 
         # Precompute rotation frequencies
-        inv_freq = 1.0 / (
-            10000 ** (torch.arange(0, self.head_dim, 2).float() / self.head_dim)
-        )
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, self.head_dim, 2).float() / self.head_dim))
         self.register_buffer("inv_freq", inv_freq)
 
         # Causal mask
@@ -430,7 +433,7 @@ class RotaryAttention(BaseAttention):
         k: torch.Tensor,
         v: torch.Tensor,
         return_attn: bool = False,
-    ) -> tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         B, nh, T, hs = q.size()
 
         # Apply rotary embeddings
@@ -438,7 +441,7 @@ class RotaryAttention(BaseAttention):
 
         if return_attn:
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(hs))
-            att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float("-inf"))
+            att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float("-inf"))  # type: ignore[index]
             att = F.softmax(att, dim=-1)
             attn_weights = att
             att = self.attn_dropout(att)
@@ -447,7 +450,10 @@ class RotaryAttention(BaseAttention):
 
         # Fast path: fused SDPA
         y = F.scaled_dot_product_attention(
-            q, k, v, is_causal=True,
+            q,
+            k,
+            v,
+            is_causal=True,
             dropout_p=self.dropout_p if self.training else 0.0,
         )
         return y, None
@@ -507,11 +513,10 @@ def create_attention(
     """
     if variant not in ATTENTION_VARIANTS:
         raise ValueError(
-            f"Unknown attention variant: {variant}. "
-            f"Choose from: {list(ATTENTION_VARIANTS.keys())}"
+            f"Unknown attention variant: {variant}. Choose from: {list(ATTENTION_VARIANTS.keys())}"
         )
 
-    return ATTENTION_VARIANTS[variant](
+    return ATTENTION_VARIANTS[variant](  # type: ignore[no-any-return]
         n_embd=n_embd,
         n_head=n_head,
         block_size=block_size,

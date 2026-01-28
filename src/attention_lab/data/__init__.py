@@ -12,17 +12,17 @@ Utilities:
     :func:`save_to_cache`: Save dataset to cache
 """
 
+from attention_lab.data.cache import (
+    clear_cache,
+    get_cache_dir,
+    is_cached,
+    list_cached_datasets,
+    load_from_cache,
+    print_cache_info,
+    save_to_cache,
+)
 from attention_lab.data.shakespeare import ShakespeareDataset, download_shakespeare
 from attention_lab.data.tokenizer import CharTokenizer
-from attention_lab.data.cache import (
-    is_cached,
-    load_from_cache,
-    save_to_cache,
-    clear_cache,
-    list_cached_datasets,
-    print_cache_info,
-    get_cache_dir,
-)
 
 __all__ = [
     # Tokenizer

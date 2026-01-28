@@ -33,10 +33,10 @@ from attention_lab.inspect.analyze import (
     head_entropy,
 )
 from attention_lab.inspect.visualize import (
+    plot_all_heads,
     plot_attention_heatmap,
     plot_attention_pattern,
     plot_generation_attention,
-    plot_all_heads,
 )
 
 __all__ = [

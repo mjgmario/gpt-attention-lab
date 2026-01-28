@@ -10,8 +10,6 @@ This module provides functions for autoregressive text generation:
 
 from __future__ import annotations
 
-from typing import Optional
-
 import torch
 from torch.nn import functional as F
 
@@ -24,10 +22,10 @@ def generate(
     idx: torch.Tensor,
     max_new_tokens: int,
     temperature: float = 1.0,
-    top_k: Optional[int] = None,
-    top_p: Optional[float] = None,
+    top_k: int | None = None,
+    top_p: float | None = None,
     return_attention: bool = False,
-) -> tuple[torch.Tensor, Optional[list[list[torch.Tensor]]]]:
+) -> tuple[torch.Tensor, list[list[torch.Tensor]] | None]:
     """Generate new tokens with optional attention weight collection.
 
     :param model: GPT model to use for generation.
@@ -61,7 +59,7 @@ def generate(
         )
     """
     model.eval()
-    all_step_attentions = [] if return_attention else None
+    all_step_attentions: list[list[torch.Tensor]] | None = [] if return_attention else None
 
     for _ in range(max_new_tokens):
         # Crop context if needed
@@ -73,7 +71,7 @@ def generate(
         logits, _, attentions = model(idx_cond, return_attn=return_attention)
 
         if return_attention and attentions is not None:
-            all_step_attentions.append(attentions)
+            all_step_attentions.append(attentions)  # type: ignore[union-attr]
 
         logits = logits[:, -1, :] / temperature
 
@@ -138,7 +136,7 @@ def get_attention_for_text(
     with torch.no_grad():
         _, _, attentions = model(tokens, return_attn=True)
 
-    return attentions if attentions is not None else []
+    return attentions if attentions is not None else []  # type: ignore[no-any-return]
 
 
 def sample_with_temperature(logits: torch.Tensor, temperature: float = 1.0) -> torch.Tensor:

@@ -11,9 +11,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import pickle
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import torch
 
@@ -99,7 +98,7 @@ def save_to_cache(
     return cache_path
 
 
-def load_from_cache(dataset_type: str, **params) -> Optional[dict[str, Any]]:
+def load_from_cache(dataset_type: str, **params) -> dict[str, Any] | None:
     """Load dataset data from cache.
 
     Args:
@@ -117,13 +116,13 @@ def load_from_cache(dataset_type: str, **params) -> Optional[dict[str, Any]]:
     try:
         cache_data = torch.load(cache_path, weights_only=False)
         print(f"Loaded {dataset_type} dataset from cache: {cache_path}")
-        return cache_data["data"]
+        return cache_data["data"]  # type: ignore[no-any-return]
     except Exception as e:
         print(f"Warning: Failed to load cache {cache_path}: {e}")
         return None
 
 
-def clear_cache(dataset_type: Optional[str] = None) -> int:
+def clear_cache(dataset_type: str | None = None) -> int:
     """Clear cached datasets.
 
     Args:
@@ -157,21 +156,25 @@ def list_cached_datasets() -> list[dict[str, Any]]:
     for cache_file in cache_dir.glob("*.pt"):
         try:
             cache_data = torch.load(cache_file, weights_only=False)
-            cached.append({
-                "type": cache_data["type"],
-                "params": cache_data["params"],
-                "path": str(cache_file),
-                "size_mb": cache_file.stat().st_size / (1024 * 1024),
-            })
+            cached.append(
+                {
+                    "type": cache_data["type"],
+                    "params": cache_data["params"],
+                    "path": str(cache_file),
+                    "size_mb": cache_file.stat().st_size / (1024 * 1024),
+                }
+            )
         except Exception:
             # Corrupted cache file
-            cached.append({
-                "type": "unknown",
-                "params": {},
-                "path": str(cache_file),
-                "size_mb": cache_file.stat().st_size / (1024 * 1024),
-                "error": "corrupted",
-            })
+            cached.append(
+                {
+                    "type": "unknown",
+                    "params": {},
+                    "path": str(cache_file),
+                    "size_mb": cache_file.stat().st_size / (1024 * 1024),
+                    "error": "corrupted",
+                }
+            )
 
     return cached
 

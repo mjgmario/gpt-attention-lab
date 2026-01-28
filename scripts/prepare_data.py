@@ -26,13 +26,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from attention_lab.data.cache import (
     clear_cache,
+    is_cached,
     print_cache_info,
     save_to_cache,
-    is_cached,
-    get_cache_path,
 )
 from attention_lab.data.shakespeare import ShakespeareDataset, download_shakespeare
-
 
 DEFAULT_CONFIG = {"block_size": 128}
 

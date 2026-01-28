@@ -1,10 +1,11 @@
 """Tests for text generation utilities."""
 
+import sys
+from pathlib import Path
+
 import pytest
 import torch
 
-import sys
-from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from attention_lab.config import GPTConfig
@@ -48,9 +49,7 @@ class TestGenerate:
         """Test generate returns attention when requested."""
         idx = torch.randint(0, config.vocab_size, (1, 5))
 
-        generated, attentions = generate(
-            model, idx, max_new_tokens=3, return_attention=True
-        )
+        generated, attentions = generate(model, idx, max_new_tokens=3, return_attention=True)
 
         assert attentions is not None
         assert len(attentions) == 3  # One per generated token
@@ -68,12 +67,8 @@ class TestGenerate:
         """Test generate works with temperature."""
         idx = torch.randint(0, config.vocab_size, (1, 5))
 
-        generated_low_temp, _ = generate(
-            model, idx, max_new_tokens=10, temperature=0.1
-        )
-        generated_high_temp, _ = generate(
-            model, idx, max_new_tokens=10, temperature=2.0
-        )
+        generated_low_temp, _ = generate(model, idx, max_new_tokens=10, temperature=0.1)
+        generated_high_temp, _ = generate(model, idx, max_new_tokens=10, temperature=2.0)
 
         assert generated_low_temp.shape == generated_high_temp.shape
 

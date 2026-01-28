@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import torch
 from torch.utils.data import DataLoader
@@ -52,9 +51,9 @@ class Trainer:
         self,
         model: GPT,
         train_loader: DataLoader,
-        config: Optional[TrainerConfig] = None,
-        val_loader: Optional[DataLoader] = None,
-        device: Optional[str] = None,
+        config: TrainerConfig | None = None,
+        val_loader: DataLoader | None = None,
+        device: str | None = None,
     ) -> None:
         """Initialize trainer.
 
@@ -87,7 +86,7 @@ class Trainer:
         # torch.compile for faster training
         if self.config.compile:
             try:
-                self.model = torch.compile(self.model)
+                self.model = torch.compile(self.model)  # type: ignore[assignment]
                 print("Model compiled with torch.compile")
             except Exception as e:
                 print(f"torch.compile not available, skipping: {e}")
@@ -159,7 +158,7 @@ class Trainer:
         avg_loss = total_loss / max(num_batches, 1)
         self.model.train()
 
-        return {"val_loss": avg_loss, "val_perplexity": 2.718 ** avg_loss}
+        return {"val_loss": avg_loss, "val_perplexity": 2.718**avg_loss}
 
     def save_checkpoint(self, filename: str = "checkpoint.pt") -> str:
         """Save model checkpoint.

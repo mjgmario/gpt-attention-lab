@@ -12,8 +12,8 @@ This module provides functions for analyzing attention patterns:
 
 from __future__ import annotations
 
-import torch
 import numpy as np
+import torch
 
 
 def head_entropy(attention: torch.Tensor) -> torch.Tensor:

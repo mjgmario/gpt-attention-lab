@@ -9,7 +9,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import torch
-
 from attention_lab.config import GPTConfig
 from attention_lab.data.shakespeare import ShakespeareDataset
 from attention_lab.model import GPT
@@ -19,26 +18,33 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate text from trained GPT model")
 
     # Model loading
-    parser.add_argument("--checkpoint", type=str, default="checkpoints/shakespeare/best_model.pt",
-                        help="Path to model checkpoint")
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default="checkpoints/shakespeare/best_model.pt",
+        help="Path to model checkpoint",
+    )
 
     # Generation arguments
-    parser.add_argument("--prompt", type=str, default="To be or not to be",
-                        help="Text prompt to continue from")
-    parser.add_argument("--max_tokens", type=int, default=200,
-                        help="Maximum number of tokens to generate")
-    parser.add_argument("--temperature", type=float, default=0.8,
-                        help="Sampling temperature (higher = more random)")
-    parser.add_argument("--top_k", type=int, default=None,
-                        help="Top-k sampling (only sample from top k tokens)")
-    parser.add_argument("--top_p", type=float, default=None,
-                        help="Top-p (nucleus) sampling threshold")
-    parser.add_argument("--num_samples", type=int, default=1,
-                        help="Number of samples to generate")
+    parser.add_argument(
+        "--prompt", type=str, default="To be or not to be", help="Text prompt to continue from"
+    )
+    parser.add_argument(
+        "--max_tokens", type=int, default=200, help="Maximum number of tokens to generate"
+    )
+    parser.add_argument(
+        "--temperature", type=float, default=0.8, help="Sampling temperature (higher = more random)"
+    )
+    parser.add_argument(
+        "--top_k", type=int, default=None, help="Top-k sampling (only sample from top k tokens)"
+    )
+    parser.add_argument(
+        "--top_p", type=float, default=None, help="Top-p (nucleus) sampling threshold"
+    )
+    parser.add_argument("--num_samples", type=int, default=1, help="Number of samples to generate")
 
     # Device
-    parser.add_argument("--device", type=str, default=None,
-                        help="Device to use (cuda/mps/cpu)")
+    parser.add_argument("--device", type=str, default=None, help="Device to use (cuda/mps/cpu)")
 
     args = parser.parse_args()
 

@@ -11,7 +11,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
 from attention_lab.config import GPTConfig
 from attention_lab.data.shakespeare import ShakespeareDataset
 from attention_lab.generate import get_attention_for_text
@@ -47,7 +46,7 @@ def plot_head_comparison(
         ("prev_token_attn", "Previous Token Attention", "Local/copying behavior"),
     ]
 
-    for ax, (metric_key, title, description) in zip(axes, metric_names):
+    for ax, (metric_key, title, description) in zip(axes, metric_names, strict=False):
         data = metrics[metric_key]
 
         im = ax.imshow(data, aspect="auto", cmap="viridis")
@@ -60,8 +59,15 @@ def plot_head_comparison(
         # Add value annotations
         for i in range(n_layers):
             for j in range(n_heads):
-                ax.text(j, i, f"{data[i, j]:.2f}", ha="center", va="center",
-                       color="white" if data[i, j] < data.mean() else "black", fontsize=8)
+                ax.text(
+                    j,
+                    i,
+                    f"{data[i, j]:.2f}",
+                    ha="center",
+                    va="center",
+                    color="white" if data[i, j] < data.mean() else "black",
+                    fontsize=8,
+                )
 
         plt.colorbar(im, ax=ax)
 
@@ -82,19 +88,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Compare attention heads across layers")
 
     # Model loading
-    parser.add_argument("--checkpoint", type=str, default=None,
-                        help="Path to model checkpoint")
+    parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint")
 
     # Input text
-    parser.add_argument("--text", type=str,
-                        default="To be or not to be, that is the question.",
-                        help="Text to analyze")
+    parser.add_argument(
+        "--text",
+        type=str,
+        default="To be or not to be, that is the question.",
+        help="Text to analyze",
+    )
 
     # Output
-    parser.add_argument("--output_dir", type=str, default="outputs/analysis",
-                        help="Directory to save outputs")
-    parser.add_argument("--show", action="store_true",
-                        help="Show plots interactively")
+    parser.add_argument(
+        "--output_dir", type=str, default="outputs/analysis", help="Directory to save outputs"
+    )
+    parser.add_argument("--show", action="store_true", help="Show plots interactively")
 
     # Model config (if no checkpoint)
     parser.add_argument("--n_layer", type=int, default=4)
@@ -197,15 +205,23 @@ def main() -> None:
 
         # Highest entropy (distributed attention)
         max_entropy_idx = np.unravel_index(np.argmax(metrics["entropy"]), metrics["entropy"].shape)
-        f.write(f"Most distributed (highest entropy): Layer {max_entropy_idx[0]}, Head {max_entropy_idx[1]}\n")
+        f.write(
+            f"Most distributed (highest entropy): Layer {max_entropy_idx[0]}, Head {max_entropy_idx[1]}\n"
+        )
 
         # Highest first token attention (BOS-like)
-        max_bos_idx = np.unravel_index(np.argmax(metrics["first_token_attn"]), metrics["first_token_attn"].shape)
+        max_bos_idx = np.unravel_index(
+            np.argmax(metrics["first_token_attn"]), metrics["first_token_attn"].shape
+        )
         f.write(f"Highest BOS attention: Layer {max_bos_idx[0]}, Head {max_bos_idx[1]}\n")
 
         # Highest previous token attention (copying)
-        max_prev_idx = np.unravel_index(np.argmax(metrics["prev_token_attn"]), metrics["prev_token_attn"].shape)
-        f.write(f"Highest previous token attention: Layer {max_prev_idx[0]}, Head {max_prev_idx[1]}\n")
+        max_prev_idx = np.unravel_index(
+            np.argmax(metrics["prev_token_attn"]), metrics["prev_token_attn"].shape
+        )
+        f.write(
+            f"Highest previous token attention: Layer {max_prev_idx[0]}, Head {max_prev_idx[1]}\n"
+        )
 
     print(f"Report saved to: {report_path}")
     print("\nAnalysis complete!")

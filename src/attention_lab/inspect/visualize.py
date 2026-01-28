@@ -12,7 +12,6 @@ This module provides functions for visualizing attention patterns:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,9 +22,9 @@ def plot_attention_heatmap(
     attention: torch.Tensor,
     layer: int = 0,
     head: int = 0,
-    tokens: Optional[list[str]] = None,
-    title: Optional[str] = None,
-    save_path: Optional[str] = None,
+    tokens: list[str] | None = None,
+    title: str | None = None,
+    save_path: str | None = None,
     figsize: tuple[int, int] = (10, 8),
     cmap: str = "Blues",
 ) -> plt.Figure:
@@ -90,8 +89,8 @@ def plot_attention_pattern(
     attention: torch.Tensor,
     layer: int = 0,
     head: int = 0,
-    tokens: Optional[list[str]] = None,
-    save_path: Optional[str] = None,
+    tokens: list[str] | None = None,
+    save_path: str | None = None,
     figsize: tuple[int, int] = (12, 4),
 ) -> plt.Figure:
     """Plot attention pattern showing the causal structure.
@@ -113,7 +112,6 @@ def plot_attention_pattern(
         attention = attention[layer]
 
     attn = attention[0, head].detach().cpu().numpy()
-    seq_len = attn.shape[0]
 
     fig, ax = plt.subplots(figsize=figsize)
 
@@ -145,8 +143,8 @@ def plot_attention_pattern(
 def plot_all_heads(
     attention: torch.Tensor | list[torch.Tensor],
     layer: int = 0,
-    tokens: Optional[list[str]] = None,
-    save_path: Optional[str] = None,
+    tokens: list[str] | None = None,
+    save_path: str | None = None,
     figsize_per_head: tuple[float, float] = (4, 4),
 ) -> plt.Figure:
     """Plot all attention heads for a given layer in a grid.
@@ -178,7 +176,7 @@ def plot_all_heads(
         ax = axes[row, col]
 
         attn = attention[0, h].detach().cpu().numpy()
-        im = ax.imshow(attn, cmap="Blues", aspect="auto")
+        ax.imshow(attn, cmap="Blues", aspect="auto")
 
         ax.set_title(f"Head {h}", fontsize=10)
 
@@ -211,8 +209,8 @@ def plot_generation_attention(
     step: int,
     layer: int = 0,
     head: int = 0,
-    tokens: Optional[list[str]] = None,
-    save_path: Optional[str] = None,
+    tokens: list[str] | None = None,
+    save_path: str | None = None,
     figsize: tuple[int, int] = (10, 8),
 ) -> plt.Figure:
     """Plot attention from a specific generation step.
@@ -250,7 +248,7 @@ def create_attention_animation(
     all_step_attentions: list[list[torch.Tensor]],
     layer: int = 0,
     head: int = 0,
-    tokens_per_step: Optional[list[list[str]]] = None,
+    tokens_per_step: list[list[str]] | None = None,
     save_path: str = "attention_animation.gif",
     interval: int = 500,
     figsize: tuple[int, int] = (8, 6),
@@ -291,7 +289,9 @@ def create_attention_animation(
         ax.set_title(f"Generation Step {frame} - Layer {layer}, Head {head}")
         return [im]
 
-    anim = FuncAnimation(fig, update, frames=len(all_step_attentions), interval=interval, blit=False)
+    anim = FuncAnimation(
+        fig, update, frames=len(all_step_attentions), interval=interval, blit=False
+    )
 
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
     anim.save(save_path, writer=PillowWriter(fps=1000 // interval))

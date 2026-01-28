@@ -5,14 +5,15 @@ from __future__ import annotations
 import os
 import urllib.request
 from pathlib import Path
-from typing import Optional
 
 import torch
 from torch.utils.data import Dataset
 
 from attention_lab.data.tokenizer import CharTokenizer
 
-SHAKESPEARE_URL = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
+SHAKESPEARE_URL = (
+    "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
+)
 DEFAULT_DATA_DIR = "data"
 
 
@@ -50,8 +51,8 @@ class ShakespeareDataset(Dataset):
         split: str = "train",
         train_ratio: float = 0.9,
         data_dir: str = DEFAULT_DATA_DIR,
-        tokenizer: Optional[CharTokenizer] = None,
-        max_samples: Optional[int] = None,
+        tokenizer: CharTokenizer | None = None,
+        max_samples: int | None = None,
     ) -> None:
         """Initialize dataset.
 

@@ -27,18 +27,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-
 from attention_lab.config_loader import (
     ExperimentConfig,
+    config_to_dict,
     load_config,
     print_config,
-    config_to_dict,
 )
+from attention_lab.data.cache import load_from_cache
 from attention_lab.data.shakespeare import ShakespeareDataset
-from attention_lab.data.cache import load_from_cache, is_cached, get_cache_dir
-from attention_lab.model_variants import create_model_variant, GPTVariantConfig
+from attention_lab.model_variants import create_model_variant
 from attention_lab.train import Trainer, TrainerConfig
+from torch.utils.data import DataLoader
 
 
 def create_run_dir(base_dir: str, name: str | None) -> Path:
@@ -63,9 +62,11 @@ def save_history(history: dict, path: Path) -> None:
 # Plotting helpers (matplotlib with non-interactive Agg backend)
 # ---------------------------------------------------------------------------
 
+
 def plot_loss_curve(history: dict, path: Path, title: str = "Loss Curve") -> None:
     """Save a single-variant train/val loss curve to *path*."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -90,6 +91,7 @@ def plot_loss_curve(history: dict, path: Path, title: str = "Loss Curve") -> Non
 def plot_comparison_curves(all_histories: dict[str, dict], path: Path) -> None:
     """Overlay train-loss curves for every variant on a single chart."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -111,6 +113,7 @@ def plot_comparison_curves(all_histories: dict[str, dict], path: Path) -> None:
 def plot_final_loss_bar(final_losses: dict[str, float], path: Path) -> None:
     """Bar chart comparing final loss across variants."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -147,6 +150,7 @@ def plot_attention_patterns_comparison(
 ) -> None:
     """Plot attention heatmaps for each variant side by side."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -157,7 +161,7 @@ def plot_attention_patterns_comparison(
 
     tokens = dataset.encode(sample_text).unsqueeze(0).to(device)
 
-    for ax, (variant, model) in zip(axes, models.items()):
+    for ax, (variant, model) in zip(axes, models.items(), strict=False):
         model.eval()
         with torch.no_grad():
             _, _, attentions = model(tokens, return_attn=True)
@@ -189,6 +193,7 @@ def plot_attention_entropy_comparison(
 ) -> None:
     """Bar chart comparing attention entropy across variants."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -221,9 +226,15 @@ def plot_attention_entropy_comparison(
     ax.set_ylabel("Average Attention Entropy")
     ax.set_title("Attention Entropy Comparison\n(Higher = more distributed attention)")
 
-    for bar, val in zip(bars, values):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.05,
-                f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+    for bar, val in zip(bars, values, strict=False):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.05,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
 
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -239,11 +250,11 @@ def plot_attention_distance_comparison(
 ) -> None:
     """Bar chart comparing mean attention distance and local ratio."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     tokens = dataset.encode(sample_text).unsqueeze(0).to(device)
-    seq_len = tokens.shape[1]
 
     metrics = {variant: {"mean_dist": 0.0, "local_ratio": 0.0} for variant in models}
 
@@ -289,9 +300,15 @@ def plot_attention_distance_comparison(
     bars = ax.bar(variants, values, color=colors)
     ax.set_ylabel("Mean Attention Distance")
     ax.set_title("Mean Attention Distance\n(Higher = looks further back)")
-    for bar, val in zip(bars, values):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.1,
-                f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+    for bar, val in zip(bars, values, strict=False):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.1,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
 
     # Local ratio
     ax = axes[1]
@@ -299,9 +316,15 @@ def plot_attention_distance_comparison(
     bars = ax.bar(variants, values, color=colors)
     ax.set_ylabel("Local Attention Ratio")
     ax.set_title("Local Attention Ratio\n(Higher = more local focus)")
-    for bar, val in zip(bars, values):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,
-                f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+    for bar, val in zip(bars, values, strict=False):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.01,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
 
     fig.suptitle("Attention Distance Metrics Comparison", fontsize=12, y=1.02)
     fig.tight_layout()
@@ -312,6 +335,7 @@ def plot_attention_distance_comparison(
 def plot_attention_mask_patterns(variants: list[str], block_size: int, path: Path) -> None:
     """Visualize the theoretical attention mask pattern for each variant."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -321,7 +345,7 @@ def plot_attention_mask_patterns(variants: list[str], block_size: int, path: Pat
     if n_variants == 1:
         axes = [axes]
 
-    for ax, variant in zip(axes, variants):
+    for ax, variant in zip(axes, variants, strict=False):
         # Create a mask pattern based on the variant
         mask = torch.zeros(display_size, display_size)
 
@@ -335,17 +359,17 @@ def plot_attention_mask_patterns(variants: list[str], block_size: int, path: Pat
             window_size = 8
             for i in range(display_size):
                 start = max(0, i - window_size + 1)
-                mask[i, start:i + 1] = 1.0
+                mask[i, start : i + 1] = 1.0
         elif variant == "sparse":
             local_size = 4
             stride = 4
             for i in range(display_size):
                 local_start = max(0, i - local_size + 1)
-                mask[i, local_start:i + 1] = 1.0
+                mask[i, local_start : i + 1] = 1.0
                 for j in range(0, i + 1, stride):
                     mask[i, j] = 1.0
 
-        im = ax.imshow(mask.numpy(), cmap="Blues", aspect="auto", vmin=0, vmax=1)
+        ax.imshow(mask.numpy(), cmap="Blues", aspect="auto", vmin=0, vmax=1)
         ax.set_title(f"{variant}")
         ax.set_xlabel("Key Position")
         ax.set_ylabel("Query Position")
@@ -399,8 +423,7 @@ def _try_load_from_cache(params: dict, cache_dir: str | None = None):
     return None
 
 
-def _reconstruct_from_cache(cached_data: dict, block_size: int,
-                            max_samples: int | None = None):
+def _reconstruct_from_cache(cached_data: dict, block_size: int, max_samples: int | None = None):
     """Reconstruct a ShakespeareDataset from cached data."""
     dataset = ShakespeareDataset.__new__(ShakespeareDataset)
     dataset.data = cached_data["data"]
@@ -411,8 +434,9 @@ def _reconstruct_from_cache(cached_data: dict, block_size: int,
     return dataset
 
 
-def create_dataset_from_config(ds_cfg, block_size: int,
-                               use_cache: bool = False, cache_dir: str | None = None):
+def create_dataset_from_config(
+    ds_cfg, block_size: int, use_cache: bool = False, cache_dir: str | None = None
+):
     """Create the Shakespeare dataset from configuration.
 
     When use_cache is True, tries to load from cache first.
@@ -428,15 +452,16 @@ def create_dataset_from_config(ds_cfg, block_size: int,
         cached_data = _try_load_from_cache(params, cache_dir)
         if cached_data is not None:
             dataset = _reconstruct_from_cache(
-                cached_data, block_size,
+                cached_data,
+                block_size,
                 max_samples=params.get("max_samples"),
             )
             if dataset is not None:
-                print(f"  Loaded shakespeare from cache")
+                print("  Loaded shakespeare from cache")
                 return dataset
-            print(f"  Cache hit but reconstruction failed, downloading fresh")
+            print("  Cache hit but reconstruction failed, downloading fresh")
         else:
-            print(f"  No cache found, downloading fresh")
+            print("  No cache found, downloading fresh")
 
     return ShakespeareDataset(**params)
 
@@ -452,7 +477,8 @@ def create_datasets(config: ExperimentConfig):
 
     ds_cfg = data_cfg.datasets[0]
     ds = create_dataset_from_config(
-        ds_cfg, block_size,
+        ds_cfg,
+        block_size,
         use_cache=data_cfg.use_cache,
         cache_dir=data_cfg.cache_dir,
     )
@@ -482,8 +508,9 @@ def create_model(config: ExperimentConfig, vocab_size: int):
     )
 
 
-def train_single(config: ExperimentConfig, dataset, device: str,
-                  resume_from: str | None = None) -> dict:
+def train_single(
+    config: ExperimentConfig, dataset, device: str, resume_from: str | None = None
+) -> dict:
     """Train a single model, optionally resuming from a checkpoint."""
     train_loader = DataLoader(
         dataset,
@@ -535,8 +562,7 @@ def train_single(config: ExperimentConfig, dataset, device: str,
     }
 
 
-def compare_variants(config: ExperimentConfig, dataset, device: str,
-                     run_dir: Path) -> dict:
+def compare_variants(config: ExperimentConfig, dataset, device: str, run_dir: Path) -> dict:
     """Train and compare multiple attention variants."""
     variants = config.compare_variants or ["vanilla", "linear", "sparse"]
     results = {}
@@ -562,8 +588,7 @@ def compare_variants(config: ExperimentConfig, dataset, device: str,
 
         # Per-variant artefacts
         save_history(history, variant_dir / "history.json")
-        plot_loss_curve(history, variant_dir / "loss_curve.png",
-                        title=f"{variant} — Loss Curve")
+        plot_loss_curve(history, variant_dir / "loss_curve.png", title=f"{variant} — Loss Curve")
 
     # Comparison summary
     print("\n" + "=" * 60)
@@ -576,9 +601,7 @@ def compare_variants(config: ExperimentConfig, dataset, device: str,
         print(f"{variant:<20} {results[variant]['final_loss']:.4f}")
 
     # Comparison-level artefacts
-    comparison_data = {
-        v: {"final_loss": results[v]["final_loss"]} for v in results
-    }
+    comparison_data = {v: {"final_loss": results[v]["final_loss"]} for v in results}
     with open(run_dir / "comparison_results.json", "w") as f:
         json.dump(comparison_data, f, indent=2)
 
@@ -591,27 +614,19 @@ def compare_variants(config: ExperimentConfig, dataset, device: str,
     models = {v: results[v]["model"] for v in results}
 
     # Attention patterns heatmaps
-    plot_attention_patterns_comparison(
-        models, dataset, device, run_dir / "attention_patterns.png"
-    )
+    plot_attention_patterns_comparison(models, dataset, device, run_dir / "attention_patterns.png")
     print("  - Saved attention_patterns.png")
 
     # Attention entropy comparison
-    plot_attention_entropy_comparison(
-        models, dataset, device, run_dir / "attention_entropy.png"
-    )
+    plot_attention_entropy_comparison(models, dataset, device, run_dir / "attention_entropy.png")
     print("  - Saved attention_entropy.png")
 
     # Attention distance metrics
-    plot_attention_distance_comparison(
-        models, dataset, device, run_dir / "attention_distance.png"
-    )
+    plot_attention_distance_comparison(models, dataset, device, run_dir / "attention_distance.png")
     print("  - Saved attention_distance.png")
 
     # Theoretical mask patterns
-    plot_attention_mask_patterns(
-        variants, config.model.block_size, run_dir / "attention_masks.png"
-    )
+    plot_attention_mask_patterns(variants, config.model.block_size, run_dir / "attention_masks.png")
     print("  - Saved attention_masks.png")
 
     return results
@@ -639,7 +654,7 @@ def test_generation(model, dataset, config: ExperimentConfig, device: str) -> No
                 )
             result = dataset.decode(output[0].tolist())
             display = result[:60] + "..." if len(result) > 60 else result
-            print(f"  {prompt} -> {display[len(prompt):]}")
+            print(f"  {prompt} -> {display[len(prompt) :]}")
         except Exception as e:
             print(f"  {prompt} -> (error: {e})")
 
@@ -716,8 +731,7 @@ def main():
 
     # Training mode
     if args.compare or config.compare_variants:
-        run_dir = create_run_dir(config.output_dir,
-                                 config.name or "full_comparison")
+        run_dir = create_run_dir(config.output_dir, config.name or "full_comparison")
         print(f"\nRun directory: {run_dir}")
 
         # Save top-level config

@@ -68,7 +68,7 @@ class CharTokenizer:
         return "".join(self.idx_to_char.get(i, "") for i in indices)
 
     @classmethod
-    def from_text(cls, text: str) -> "CharTokenizer":
+    def from_text(cls, text: str) -> CharTokenizer:
         """Create tokenizer from text corpus.
 
         Extracts all unique characters from the text to build the vocabulary.

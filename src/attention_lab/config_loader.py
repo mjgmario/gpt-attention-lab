@@ -12,10 +12,8 @@ This module provides utilities for loading experiment configurations:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
 
 import yaml
 
@@ -52,7 +50,7 @@ class ModelConfig:
     :param bias: Use bias in linear layers.
     """
 
-    vocab_size: Optional[int] = 256
+    vocab_size: int | None = 256
     block_size: int = 64
     n_layer: int = 4
     n_head: int = 4
@@ -73,8 +71,8 @@ class AttentionConfig:
 
     type: str = "vanilla"
     window_size: int = 16  # for sliding_window
-    local_size: int = 16   # for sparse
-    stride: int = 16       # for sparse
+    local_size: int = 16  # for sparse
+    stride: int = 16  # for sparse
 
 
 @dataclass
@@ -138,7 +136,7 @@ class DataConfig:
     num_samples: int = 20000
     datasets: list[DatasetItemConfig] = field(default_factory=list)
     use_cache: bool = False
-    cache_dir: Optional[str] = None
+    cache_dir: str | None = None
 
 
 @dataclass
@@ -153,8 +151,8 @@ class GenerationConfig:
 
     max_new_tokens: int = 100
     temperature: float = 0.8
-    top_k: Optional[int] = 40
-    top_p: Optional[float] = None
+    top_k: int | None = 40
+    top_p: float | None = None
 
 
 @dataclass
@@ -183,15 +181,15 @@ class ExperimentConfig:
     generation: GenerationConfig = field(default_factory=GenerationConfig)
 
     # Experiment metadata
-    name: Optional[str] = None
+    name: str | None = None
     seed: int = 42
     output_dir: str = "outputs"
-    device: Optional[str] = None
+    device: str | None = None
     num_workers: int = 0
     pin_memory: bool = True
 
     # Comparison mode
-    compare_variants: Optional[list[str]] = None
+    compare_variants: list[str] | None = None
     eval_accuracy: bool = False
 
 
@@ -203,11 +201,11 @@ def load_yaml(path: str | Path) -> dict:
     :returns: Parsed YAML as dictionary.
     :rtype: dict
     """
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
-def find_config_file(config_path: Optional[str] = None) -> Path:
+def find_config_file(config_path: str | None = None) -> Path:
     """Find configuration file.
 
     Priority:
@@ -254,16 +252,18 @@ def parse_datasets(data_cfg: dict, defaults: dict) -> list[DatasetItemConfig]:
         params = {k: v for k, v in ds_cfg.items() if k not in ["type", "weight"]}
         default_params.update(params)
 
-        datasets.append(DatasetItemConfig(
-            type=ds_type,
-            weight=weight,
-            params=default_params,
-        ))
+        datasets.append(
+            DatasetItemConfig(
+                type=ds_type,
+                weight=weight,
+                params=default_params,
+            )
+        )
 
     return datasets
 
 
-def load_config(config_path: Optional[str] = None) -> ExperimentConfig:
+def load_config(config_path: str | None = None) -> ExperimentConfig:
     """Load experiment configuration from YAML.
 
     Loads the config file and merges with defaults.
@@ -390,7 +390,7 @@ def print_config(config: ExperimentConfig) -> None:
     print(f"Seed: {config.seed}")
     print(f"Device: {config.device or 'auto'}")
 
-    print(f"\nModel:")
+    print("\nModel:")
     print(f"  Layers: {config.model.n_layer}")
     print(f"  Heads: {config.model.n_head}")
     print(f"  Embedding: {config.model.n_embd}")
@@ -403,23 +403,23 @@ def print_config(config: ExperimentConfig) -> None:
         print(f"  Local size: {config.attention.local_size}")
         print(f"  Stride: {config.attention.stride}")
 
-    print(f"\nTraining:")
+    print("\nTraining:")
     print(f"  Steps: {config.training.max_steps}")
     print(f"  Batch size: {config.training.batch_size}")
     print(f"  Learning rate: {config.training.learning_rate}")
 
-    print(f"\nData:")
+    print("\nData:")
     print(f"  Strategy: {config.data.strategy}")
     print(f"  Samples: {config.data.num_samples}")
     print(f"  Use cache: {config.data.use_cache}")
     if config.data.cache_dir:
         print(f"  Cache dir: {config.data.cache_dir}")
-    print(f"  Datasets:")
+    print("  Datasets:")
     for ds in config.data.datasets:
         print(f"    - {ds.type} (weight={ds.weight})")
 
     if config.compare_variants:
-        print(f"\nComparison mode:")
+        print("\nComparison mode:")
         print(f"  Variants: {', '.join(config.compare_variants)}")
 
     print()
